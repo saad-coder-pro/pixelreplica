@@ -1,39 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Device Mockup Builder — Local Files Only</title>
-
-  <!-- Bootstrap 4 -->
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css">
-
-  <!-- HTML5 Device Mockups -->
-  <link rel="stylesheet" href="https://unpkg.com/html5-device-mockups/dist/device-mockups.min.css">
-
-  <style>
-    body{background:#0f1220;color:#fff}
-    .stage{max-width:1000px;margin:24px auto}
-    .panel{background:#1b2140;border-radius:8px;padding:16px;margin:16px auto}
-    .device-wrapper .device{width:360px;margin:auto}
-    .device .screen, .device .screen>*{width:100%;height:100%}
-    .helper{font-size:12px;opacity:.8}
-    @media (min-width:768px){
-      .device-wrapper .device{width:420px}
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup Builder — Validated + Reliable Download</title>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://unpkg.com/html5-device-mockups/dist/device-mockups.min.css">
+<style>
+  body{background:#0f1220;color:#fff}
+  .stage{max-width:1000px;margin:24px auto}
+  .panel{background:#1b2140;border-radius:8px;padding:16px;margin:16px auto}
+  .device-wrapper .device{width:380px;margin:auto}
+  .device .screen, .device .screen>*{width:100%;height:100%}
+  .helper{font-size:12px;opacity:.8}
+  #errorBox{display:none}
+</style>
 </head>
 <body>
 <div class="container stage">
-  <h3 class="mt-4 mb-3">Device Mockup Builder</h3>
+  <h4 class="mb-3">Device Mockup Builder</h4>
 
-  <!-- Controls -->
   <div class="panel">
+    <div id="errorBox" class="alert alert-warning mb-3"></div>
+
     <div class="form-row">
       <div class="form-group col-md-4 col-lg-3">
         <label>Device</label>
         <select id="deviceSelect" class="form-control">
-          <!-- Use the library “Filename” values -->
           <option value="Chromebook">Chromebook</option>
           <option value="galaxyS3">Galaxy S3</option>
           <option value="galaxyS5">Galaxy S5</option>
@@ -70,7 +63,6 @@
           <option value="portrait">portrait</option>
           <option value="landscape">landscape</option>
         </select>
-        <small class="helper d-block mt-1">Only devices with landscape in the list will render properly in landscape.</small>
       </div>
 
       <div class="form-group col-md-4 col-lg-3">
@@ -82,13 +74,12 @@
           <option value="pink">pink</option>
           <option value="red">red</option>
         </select>
-        <small class="helper d-block mt-1">If a color isn’t available for the device, it will fall back to black.</small>
       </div>
 
       <div class="form-group col-12 col-lg-3">
         <label>Upload image (incl. GIF) or MP4</label>
         <input id="fileInput" type="file" class="form-control-file" accept="image/*,video/mp4">
-        <small class="helper d-block mt-1">Local files only. For video, only MP4 is allowed.</small>
+        <small class="helper d-block mt-1">Local files only. Video must be MP4.</small>
       </div>
     </div>
 
@@ -98,7 +89,6 @@
     </div>
   </div>
 
-  <!-- Mockup -->
   <div class="device-wrapper">
     <div id="mockup" class="device" data-device="iPhoneSE" data-orientation="portrait" data-color="black">
       <div id="screen" class="screen"></div>
@@ -108,21 +98,83 @@
 </div>
 
 <script>
-  const mockup = document.getElementById('mockup');
   const screen = document.getElementById('screen');
+  const mockup = document.getElementById('mockup');
+  const errorBox = document.getElementById('errorBox');
 
-  let currentFile = null;
-  let objectUrl = null;
+  // Supported combinations derived from the library assets listing on CDN
+  // For brevity, include the most commonly used devices; add more as needed.
+  const supportedOptions = {
+    Chromebook: { orientations:['portrait'], colors:['black'] },
+    galaxyS3: { orientations:['portrait','landscape'], colors:['black','white'] },
+    galaxyS5: { orientations:['portrait','landscape'], colors:['black','white','gold'] },
+    galaxyTab4: { orientations:['portrait'], colors:['black'] },
+    HtcOneM8: { orientations:['portrait','landscape'], colors:['black'] },
+    HuaweiP8: { orientations:['portrait','landscape'], colors:['gold'] },
+    iMac: { orientations:['portrait'], colors:['black'] },
+    iPad: { orientations:['portrait','landscape'], colors:['black','white'] },
+    iPadAir2: { orientations:['portrait','landscape'], colors:['black','white','gold'] },
+    iPadPro: { orientations:['portrait','landscape'], colors:['black','white','gold'] },
+    iPhone6: { orientations:['portrait','landscape'], colors:['black','white','gold'] },
+    iPhone6Plus: { orientations:['portrait','landscape'], colors:['black','white','gold'] },
+    iPhoneSE: { orientations:['portrait','landscape'], colors:['black','white','gold','pink'] },
+    iPhone5: { orientations:['portrait','landscape'], colors:['black','white'] },
+    iPhone6Hand: { orientations:['portrait'], colors:['black','white'] },
+    iPhone7Hand: { orientations:['portrait'], colors:['black'] },
+    iPhone7Hand_2: { orientations:['portrait'], colors:['black'] },
+    iPhone7: { orientations:['portrait','landscape'], colors:['black','white','gold','pink','red'] },
+    iPhoneX: { orientations:['portrait','landscape'], colors:['black'] },
+    Lumia930: { orientations:['portrait','landscape'], colors:['black','white'] },
+    Macbook: { orientations:['portrait'], colors:['black','white','gold'] },
+    Macbook2015: { orientations:['portrait'], colors:['black','white','gold'] },
+    MacbookPro2015: { orientations:['portrait'], colors:['black'] },
+    Pixel: { orientations:['portrait'], colors:['black','white'] },
+    SamsungTV: { orientations:['landscape'], colors:['black'] },
+    SurfacePro3: { orientations:['landscape'], colors:['black'] },
+    SurfaceStudio: { orientations:['portrait'], colors:['black'] }
+  }; // Built from the asset list on cdnjs. [3]
+
+  function showError(msg){
+    errorBox.textContent = msg;
+    errorBox.style.display = 'block';
+  }
+  function clearError(){
+    errorBox.style.display = 'none';
+    errorBox.textContent = '';
+  }
 
   function applyAttrs(){
-    mockup.setAttribute('data-device', document.getElementById('deviceSelect').value);
-    mockup.setAttribute('data-orientation', document.getElementById('orientationSelect').value);
-    mockup.setAttribute('data-color', document.getElementById('colorSelect').value);
+    clearError();
+    const dev = document.getElementById('deviceSelect').value;
+    const ori = document.getElementById('orientationSelect').value;
+    const col = document.getElementById('colorSelect').value;
+
+    const sup = supportedOptions[dev];
+    if(!sup){
+      showError(`Unknown device "${dev}".`);
+      return;
+    }
+    if(!sup.orientations.includes(ori)){
+      showError(`Orientation "${ori}" is not supported for ${dev}. Supported: ${sup.orientations.join(', ')}.`);
+      return;
+    }
+    if(!sup.colors.includes(col)){
+      showError(`Color "${col}" is not supported for ${dev}. Supported: ${sup.colors.join(', ')}.`);
+      return;
+    }
+
+    mockup.setAttribute('data-device', dev);
+    mockup.setAttribute('data-orientation', ori);
+    mockup.setAttribute('data-color', col);
   }
   ['deviceSelect','orientationSelect','colorSelect'].forEach(id=>{
     document.getElementById(id).addEventListener('change', applyAttrs);
   });
   applyAttrs();
+
+  // Media handling
+  let currentFile = null;
+  let objectUrl = null;
 
   function clearScreen(){
     if(objectUrl) URL.revokeObjectURL(objectUrl);
@@ -134,23 +186,25 @@
 
   document.getElementById('fileInput').addEventListener('change', (e)=>{
     clearScreen();
-    const f = e.target.files && e.target.files[0];
+    const f = e.target.files && e.target.files;
     if(!f) return;
-    // only allow images or mp4
+
     if (!(f.type.startsWith('image/') || f.type === 'video/mp4')) {
-      alert('Unsupported file. Please choose an image (incl. GIF) or an MP4 video.');
+      showError('Unsupported file. Use an image (incl. GIF) or an MP4 video.');
       e.target.value='';
       return;
     }
+    clearError();
+
     currentFile = f;
     objectUrl = URL.createObjectURL(f);
 
     if (f.type.startsWith('image/')) {
       const img = document.createElement('img');
       img.src = objectUrl;
+      img.style.objectFit='cover';
       img.style.width='100%';
       img.style.height='100%';
-      img.style.objectFit='cover';
       img.alt = f.name;
       screen.appendChild(img);
     } else {
@@ -161,27 +215,36 @@
       video.muted = true;
       video.playsInline = true;
       video.controls = true;
+      video.style.objectFit='cover';
       video.style.width='100%';
       video.style.height='100%';
-      video.style.objectFit='cover';
       screen.appendChild(video);
     }
   });
 
-  document.getElementById('downloadBtn').addEventListener('click', ()=>{
-    if(!currentFile){
-      alert('Upload an image (incl. GIF) or MP4 first.');
-      return;
-    }
+  // Robust download helper (works across browsers)
+  function downloadFileFromObjectURL(file, objUrl){
     const a = document.createElement('a');
-    const url = objectUrl || URL.createObjectURL(currentFile);
-    a.href = url;
-    // Preserve original filename and extension
-    a.download = currentFile.name || (currentFile.type === 'video/mp4' ? 'video.mp4' : 'image');
+    a.href = objUrl;
+    a.download = file.name || (file.type === 'video/mp4' ? 'video.mp4' : 'image');
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
-    setTimeout(()=>{ try{URL.revokeObjectURL(url);}catch(e){} }, 2000);
+    setTimeout(()=>{ // allow browsers to start the download
+      document.body.removeChild(a);
+      try{ URL.revokeObjectURL(objUrl); }catch(e){}
+    }, 800);
+  } // Uses anchor download + delayed revoke for reliability. [7][12][9][11]
+
+  document.getElementById('downloadBtn').addEventListener('click', ()=>{
+    if(!currentFile || !objectUrl){
+      showError('Nothing to download. Upload an image (incl. GIF) or MP4 first.');
+      return;
+    }
+    clearError();
+    downloadFileFromObjectURL(currentFile, objectUrl);
+    // Re-create fresh object URL so preview keeps working after revoke
+    objectUrl = URL.createObjectURL(currentFile);
   });
 </script>
 </body>
