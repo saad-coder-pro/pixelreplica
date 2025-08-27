@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Device Mockup Builder — Local Files Only</title>
+
+  <!-- Bootstrap 4 -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css">
+
+  <!-- HTML5 Device Mockups -->
+  <link rel="stylesheet" href="https://unpkg.com/html5-device-mockups/dist/device-mockups.min.css">
+
+  <style>
+    body{background:#0f1220;color:#fff}
+    .stage{max-width:1000px;margin:24px auto}
+    .panel{background:#1b2140;border-radius:8px;padding:16px;margin:16px auto}
+    .device-wrapper .device{width:360px;margin:auto}
+    .device .screen, .device .screen>*{width:100%;height:100%}
+    .helper{font-size:12px;opacity:.8}
+    @media (min-width:768px){
+      .device-wrapper .device{width:420px}
+    }
+  </style>
+</head>
+<body>
+<div class="container stage">
+  <h3 class="mt-4 mb-3">Device Mockup Builder</h3>
+
+  <!-- Controls -->
+  <div class="panel">
+    <div class="form-row">
+      <div class="form-group col-md-4 col-lg-3">
+        <label>Device</label>
+        <select id="deviceSelect" class="form-control">
+          <!-- Use the library “Filename” values -->
+          <option value="Chromebook">Chromebook</option>
+          <option value="galaxyS3">Galaxy S3</option>
+          <option value="galaxyS5">Galaxy S5</option>
+          <option value="galaxyTab4">Galaxy Tab 4</option>
+          <option value="HtcOneM8">HTC One M8</option>
+          <option value="HuaweiP8">Huawei P8</option>
+          <option value="iMac">iMac</option>
+          <option value="iPad">iPad</option>
+          <option value="iPadAir2">iPad Air 2</option>
+          <option value="iPadPro">iPad Pro</option>
+          <option value="iPhone6">iPhone 6</option>
+          <option value="iPhone6Plus">iPhone 6 Plus</option>
+          <option value="iPhoneSE">iPhone SE</option>
+          <option value="iPhone5">iPhone 5</option>
+          <option value="iPhone6Hand">iPhone 6 Hand</option>
+          <option value="iPhone7Hand">iPhone 7 Hand</option>
+          <option value="iPhone7Hand_2">iPhone 7 Hand 2</option>
+          <option value="iPhone7">iPhone 7</option>
+          <option value="iPhoneX">iPhone X</option>
+          <option value="Lumia930">Lumia 930</option>
+          <option value="Macbook">Macbook</option>
+          <option value="Macbook2015">Macbook 2015</option>
+          <option value="MacbookPro2015">MacbookPro 2015</option>
+          <option value="Pixel">Pixel</option>
+          <option value="SamsungTV">Samsung TV</option>
+          <option value="SurfacePro3">Surface Pro 3</option>
+          <option value="SurfaceStudio">Surface Studio</option>
+        </select>
+      </div>
+
+      <div class="form-group col-md-4 col-lg-3">
+        <label>Orientation</label>
+        <select id="orientationSelect" class="form-control">
+          <option value="portrait">portrait</option>
+          <option value="landscape">landscape</option>
+        </select>
+        <small class="helper d-block mt-1">Only devices with landscape in the list will render properly in landscape.</small>
+      </div>
+
+      <div class="form-group col-md-4 col-lg-3">
+        <label>Color</label>
+        <select id="colorSelect" class="form-control">
+          <option value="black">black</option>
+          <option value="white">white</option>
+          <option value="gold">gold</option>
+          <option value="pink">pink</option>
+          <option value="red">red</option>
+        </select>
+        <small class="helper d-block mt-1">If a color isn’t available for the device, it will fall back to black.</small>
+      </div>
+
+      <div class="form-group col-12 col-lg-3">
+        <label>Upload image (incl. GIF) or MP4</label>
+        <input id="fileInput" type="file" class="form-control-file" accept="image/*,video/mp4">
+        <small class="helper d-block mt-1">Local files only. For video, only MP4 is allowed.</small>
+      </div>
+    </div>
+
+    <div class="text-right">
+      <button id="downloadBtn" class="btn btn-success">Download media</button>
+      <button id="clearBtn" class="btn btn-outline-light">Clear</button>
+    </div>
+  </div>
+
+  <!-- Mockup -->
+  <div class="device-wrapper">
+    <div id="mockup" class="device" data-device="iPhoneSE" data-orientation="portrait" data-color="black">
+      <div id="screen" class="screen"></div>
+      <div class="button"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const mockup = document.getElementById('mockup');
+  const screen = document.getElementById('screen');
+
+  let currentFile = null;
+  let objectUrl = null;
+
+  function applyAttrs(){
+    mockup.setAttribute('data-device', document.getElementById('deviceSelect').value);
+    mockup.setAttribute('data-orientation', document.getElementById('orientationSelect').value);
+    mockup.setAttribute('data-color', document.getElementById('colorSelect').value);
+  }
+  ['deviceSelect','orientationSelect','colorSelect'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', applyAttrs);
+  });
+  applyAttrs();
+
+  function clearScreen(){
+    if(objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl = null;
+    currentFile = null;
+    screen.innerHTML = '';
+  }
+  document.getElementById('clearBtn').addEventListener('click', clearScreen);
+
+  document.getElementById('fileInput').addEventListener('change', (e)=>{
+    clearScreen();
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    // only allow images or mp4
+    if (!(f.type.startsWith('image/') || f.type === 'video/mp4')) {
+      alert('Unsupported file. Please choose an image (incl. GIF) or an MP4 video.');
+      e.target.value='';
+      return;
+    }
+    currentFile = f;
+    objectUrl = URL.createObjectURL(f);
+
+    if (f.type.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.src = objectUrl;
+      img.style.width='100%';
+      img.style.height='100%';
+      img.style.objectFit='cover';
+      img.alt = f.name;
+      screen.appendChild(img);
+    } else {
+      const video = document.createElement('video');
+      video.src = objectUrl;
+      video.autoplay = true;
+      video.loop = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.controls = true;
+      video.style.width='100%';
+      video.style.height='100%';
+      video.style.objectFit='cover';
+      screen.appendChild(video);
+    }
+  });
+
+  document.getElementById('downloadBtn').addEventListener('click', ()=>{
+    if(!currentFile){
+      alert('Upload an image (incl. GIF) or MP4 first.');
+      return;
+    }
+    const a = document.createElement('a');
+    const url = objectUrl || URL.createObjectURL(currentFile);
+    a.href = url;
+    // Preserve original filename and extension
+    a.download = currentFile.name || (currentFile.type === 'video/mp4' ? 'video.mp4' : 'image');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>{ try{URL.revokeObjectURL(url);}catch(e){} }, 2000);
+  });
+</script>
+</body>
+</html>
